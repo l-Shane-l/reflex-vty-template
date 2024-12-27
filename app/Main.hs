@@ -6,19 +6,13 @@
 import Control.Monad
 import Control.Monad.Fix
 import qualified Data.Set as Set
-import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Graphics.Vty as V
 import Reflex
-import Reflex.Network
 import Reflex.Vty
 
 main :: IO ()
 main = mainWidget $ withCtrlC $ initManager_ $ do
-    -- Get display dimensions for responsive layout
-    dw <- displayWidth
-    dh <- displayHeight
-
     -- Main layout
     row $ do
         grout flex blank -- Left margin
@@ -34,13 +28,48 @@ main = mainWidget $ withCtrlC $ initManager_ $ do
                 grout (fixed 1) $ text "Status: Ready"
                 grout (fixed 1) $ text "Last Recording: None"
 
-            -- Main controls
-            grout (fixed 6) $ boxStatic doubleBoxStyle $ col $ do
+            -- Main controls with timer logic
+            (recordClick, stopClick, resetClick) <- grout (fixed 6) $ boxStatic doubleBoxStyle $ col $ do
                 grout (fixed 1) $ text "Controls"
                 grout (fixed 3) $ row $ do
-                    recordBtn <- tile flex $ fancyBtn "⏺" "Record" (pure True)
-                    stopBtn <- tile flex $ fancyBtn "⏹" "Stop" (pure False)
-                    pure ()
+                    let buttonCfg = def{_buttonConfig_focusStyle = pure doubleBoxStyle}
+
+                    recordClick <- tile flex $ do
+                        buttonClick <- textButtonStatic buttonCfg "⏺ Record"
+                        keyPress <- keyCombos $ Set.fromList [(V.KEnter, []), (V.KChar ' ', [])]
+                        pure $ leftmost [void buttonClick, void keyPress]
+
+                    stopClick <- tile flex $ do
+                        buttonClick <- textButtonStatic buttonCfg "⏹ Stop"
+                        keyPress <- keyCombos $ Set.fromList [(V.KEnter, []), (V.KChar ' ', [])]
+                        pure $ leftmost [void buttonClick, void keyPress]
+
+                    resetClick <- tile flex $ do
+                        buttonClick <- textButtonStatic buttonCfg "⟲ Reset"
+                        keyPress <- keyCombos $ Set.fromList [(V.KEnter, []), (V.KChar ' ', [])]
+                        pure $ leftmost [void buttonClick, void keyPress]
+
+                    pure (recordClick, stopClick, resetClick)
+
+            -- Timer logic using button events
+            isRunning <- toggle False $ leftmost [recordClick, stopClick]
+
+            -- Get tick events for when we're running
+            tick <- tickLossyFromPostBuildTime 1
+
+            -- Track accumulated time
+            accumTime <-
+                foldDyn ($) 0 $
+                    mergeWith
+                        (.)
+                        [ const 0 <$ resetClick -- Reset to 0
+                        , (+ 1) <$ gate (current isRunning) tick -- Only add time when running
+                        ]
+
+            -- Timer display
+            grout (fixed 6) $ boxStatic singleBoxStyle $ col $ do
+                grout (fixed 1) $ text "Timer"
+                grout (fixed 2) $ displayTimer accumTime
 
             -- Recent recordings list
             _ <- grout (fixed 10) $ boxStatic singleBoxStyle $ col $ do
@@ -64,19 +93,6 @@ main = mainWidget $ withCtrlC $ initManager_ $ do
 
         grout flex blank -- Right margin
   where
-    -- Enhanced button with icon
-    fancyBtn icon label enabledDyn = do
-        let cfg = def{_buttonConfig_focusStyle = pure doubleBoxStyle}
-        buttonClick <- textButtonStatic cfg (icon <> " " <> label)
-        keyPress <-
-            keyCombos $
-                Set.fromList
-                    [ (V.KEnter, [])
-                    , (V.KChar ' ', [])
-                    ]
-        pure $ gate enabledDyn $ leftmost [void buttonClick, void keyPress]
-
-    -- Custom styles
     titleStyle =
         V.Attr
             { V.attrStyle = V.SetTo V.standout
@@ -92,3 +108,18 @@ withCtrlC f = do
     return $ fforMaybe inp $ \case
         V.EvKey (V.KChar 'c') [V.MCtrl] -> Just ()
         _ -> Nothing
+
+displayTimer ::
+    (Reflex t, MonadHold t m, MonadFix m, HasImageWriter t m, HasDisplayRegion t m, HasTheme t m) =>
+    Dynamic t Double ->
+    m ()
+displayTimer accumTime = do
+    let formatTime seconds =
+            let total = floor seconds :: Integer
+                hours = total `div` 3600
+                mins = (total `mod` 3600) `div` 60
+                secs = total `mod` 60
+             in T.pack $ show hours <> ":" <> padZero mins <> ":" <> padZero secs
+        padZero n = if n < 10 then "0" <> show n else show n
+
+    text $ formatTime <$> current accumTime

@@ -9,6 +9,7 @@ pkgs.mkShell {
   buildInputs = [
     pkgs.cabal-install
     pkgs.ghcid
+
     pkgs.haskellPackages.reflex-vty
   ];
 
