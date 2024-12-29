@@ -73,9 +73,15 @@ executable vtyTest
       containers,
       reflex,
       reflex-vty,
+      reflex-fsnotify,
+      fsnotify,
       text,
       time,
+      directory,
+      filepath,
+      data-default-class,
       transformers,
+      process,
       vty
 
     -- Directories containing source files.

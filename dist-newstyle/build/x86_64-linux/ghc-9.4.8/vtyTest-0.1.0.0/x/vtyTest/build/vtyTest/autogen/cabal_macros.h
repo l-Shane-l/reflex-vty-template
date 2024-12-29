@@ -30,6 +30,56 @@
   (major1) == 0 && (major2) <  6 || \
   (major1) == 0 && (major2) == 6 && (minor) <= 7)
 #endif /* MIN_VERSION_containers */
+/* package data-default-class-0.1.2.2 */
+#ifndef VERSION_data_default_class
+#define VERSION_data_default_class "0.1.2.2"
+#endif /* VERSION_data_default_class */
+#ifndef MIN_VERSION_data_default_class
+#define MIN_VERSION_data_default_class(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  1 || \
+  (major1) == 0 && (major2) == 1 && (minor) <= 2)
+#endif /* MIN_VERSION_data_default_class */
+/* package directory-1.3.7.1 */
+#ifndef VERSION_directory
+#define VERSION_directory "1.3.7.1"
+#endif /* VERSION_directory */
+#ifndef MIN_VERSION_directory
+#define MIN_VERSION_directory(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  3 || \
+  (major1) == 1 && (major2) == 3 && (minor) <= 7)
+#endif /* MIN_VERSION_directory */
+/* package filepath-1.4.2.2 */
+#ifndef VERSION_filepath
+#define VERSION_filepath "1.4.2.2"
+#endif /* VERSION_filepath */
+#ifndef MIN_VERSION_filepath
+#define MIN_VERSION_filepath(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  4 || \
+  (major1) == 1 && (major2) == 4 && (minor) <= 2)
+#endif /* MIN_VERSION_filepath */
+/* package fsnotify-0.4.1.0 */
+#ifndef VERSION_fsnotify
+#define VERSION_fsnotify "0.4.1.0"
+#endif /* VERSION_fsnotify */
+#ifndef MIN_VERSION_fsnotify
+#define MIN_VERSION_fsnotify(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  4 || \
+  (major1) == 0 && (major2) == 4 && (minor) <= 1)
+#endif /* MIN_VERSION_fsnotify */
+/* package process-1.6.18.0 */
+#ifndef VERSION_process
+#define VERSION_process "1.6.18.0"
+#endif /* VERSION_process */
+#ifndef MIN_VERSION_process
+#define MIN_VERSION_process(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  6 || \
+  (major1) == 1 && (major2) == 6 && (minor) <= 18)
+#endif /* MIN_VERSION_process */
 /* package reflex-0.9.3.1 */
 #ifndef VERSION_reflex
 #define VERSION_reflex "0.9.3.1"
@@ -40,6 +90,16 @@
   (major1) == 0 && (major2) <  9 || \
   (major1) == 0 && (major2) == 9 && (minor) <= 3)
 #endif /* MIN_VERSION_reflex */
+/* package reflex-fsnotify-0.3.0.0 */
+#ifndef VERSION_reflex_fsnotify
+#define VERSION_reflex_fsnotify "0.3.0.0"
+#endif /* VERSION_reflex_fsnotify */
+#ifndef MIN_VERSION_reflex_fsnotify
+#define MIN_VERSION_reflex_fsnotify(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  3 || \
+  (major1) == 0 && (major2) == 3 && (minor) <= 0)
+#endif /* MIN_VERSION_reflex_fsnotify */
 /* package reflex-vty-0.6.1.0 */
 #ifndef VERSION_reflex_vty
 #define VERSION_reflex_vty "0.6.1.0"
