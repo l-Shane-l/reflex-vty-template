@@ -147,14 +147,14 @@ main = do
                 -- richText (RichTextConfig $ constant greenAttr) (constant "Status: Ready")
 
                 -- Main controls with timer logic
-                (startE, stopE, gifE, trimEv) <- grout (fixed 6) $ boxTitle (constant doubleBoxStyle) (constant "Controls") $ col $ do
+                (startE, stopE, gifE, trimEv) <- grout (fixed 5) $ boxTitle (constant doubleBoxStyle) (constant "Controls") $ col $ do
                     grout (stretch 3) $ row $ do
                         let buttonCfg = def{_buttonConfig_focusStyle = pure singleBoxStyle}
 
                         rec isRecording <- holdDyn False toggleE
                             toggleE <- tile flex $ do
                                 let buttonText = current $ ffor isRecording $ \recording ->
-                                        if recording then "⏹️" <> "Stop" else "▶️" <> "Record"
+                                        if recording then "           \xf28d" <> " Stop" else "           \xeba7" <> " Record"
                                 clickR <- textButton buttonCfg buttonText
                                 pure $ not <$> tag (current isRecording) clickR
 
@@ -163,13 +163,13 @@ main = do
                         rec isConverting <- holdDyn False convertE
                             convertE <- tile flex $ do
                                 let buttonText = current $ ffor isConverting $ \converting ->
-                                        if converting then "⌛ Running" else "🪄 Create Gif"
+                                        if converting then "         \xf254 Running" else "         \xf0d78 Create Gif"
                                 clickG <- textButton buttonCfg buttonText
                                 pure $ not <$> tag (current isConverting) clickG
 
                             let gifE = ffilter id $ updated isConverting
                         -- TODO button to clip start and stop
-                        trimEv <- tile flex $ textButton buttonCfg "🔴 trimVideo"
+                        trimEv <- tile flex $ textButton buttonCfg "          \xf0c4 trimVideo"
                         pure (startE, stopE, gifE, trimEv)
 
                 recEv <- performEvent $ ffor startE $ \_ -> liftIO $ do
@@ -237,14 +237,11 @@ main = do
                     -- Display the files
                     tile flex $ scrollableText def $ T.unlines <$> videoFiles
 
-                grout (fixed 5) $ boxTitle (constant singleBoxStyle) (constant "Recent Recordings") $ col $ do
-                    grout (fixed 1) $ text "Settings"
+                grout (fixed 4) $ boxTitle (constant singleBoxStyle) (constant "Settings") $ col $ do
                     grout (fixed 1) $ row $ do
-                        grout (fixed 15) $ text "Output Format:"
-                        tile flex $ text "MP4"
+                        grout (stretch 1) $ text "   Output Format: MP4"
                     grout (fixed 1) $ row $ do
-                        grout (fixed 15) $ text "Save Location:"
-                        tile flex $ text "~/Videos/"
+                        grout (stretch 1) $ text "   Save Location: ~/Videos/"
 
                 -- Help text
                 grout (fixed 2) $
@@ -280,7 +277,7 @@ displayTimer accumTime = do
                 hours = total `div` 3600
                 mins = (total `mod` 3600) `div` 60
                 secs = total `mod` 60
-             in T.pack $ show hours <> ":" <> padZero mins <> ":" <> padZero secs
+             in T.pack $ "                                              \xe641 " <> show hours <> ":" <> padZero mins <> ":" <> padZero secs
         padZero n = if n < 10 then "0" <> show n else show n
 
     text $ formatMyTime <$> current accumTime
@@ -299,7 +296,7 @@ getVideoFiles vidDir = do
                     -- Get modification times and create (time, file) pairs
                     filesWithTimes <- forM files $ \file -> do
                         modTime <- getModificationTime (videosDir </> file)
-                        return (modTime, T.pack file)
+                        return (modTime, "   \xf4a5 " <> T.pack file)
                     -- Sort by time (in reverse order) and extract just the filenames
                     return $ map snd $ sortBy (comparing (Down . fst)) filesWithTimes
         else return [T.pack "Videos directory not found"]
