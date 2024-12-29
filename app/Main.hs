@@ -132,122 +132,118 @@ main = do
         tabNavigation
 
         -- Main layout
-        row $ do
-            grout flex blank -- Left margin
-            grout (stretch 60) $ col $ do
-                -- Title bar with custom style
-                grout (fixed 3) $
-                    localTheme (const $ constant titleStyle) $
-                        boxTitle (constant def) (constant "FFmpeg Screen Recorder") $
-                            grout (fixed 1) $
-                                row $ do
-                                    grout flex blank
-                                    grout (stretch 6) $ text "A simple screen recorder using FFmpeg"
-                                    grout flex blank
-                -- richText (RichTextConfig $ constant greenAttr) (constant "Status: Ready")
+        grout (stretch 60) $ col $ do
+            -- Title bar with custom style
+            grout (fixed 3) $
+                localTheme (const $ constant titleStyle) $
+                    boxTitle (constant def) (constant "FFmpeg Screen Recorder") $
+                        grout (fixed 1) $
+                            row $ do
+                                grout flex blank
+                                grout (stretch 8) $ text "              A simple screen recorder using FFmpeg"
+                                grout flex blank
+            -- richText (RichTextConfig $ constant greenAttr) (constant "Status: Ready")
 
-                -- Main controls with timer logic
-                (startE, stopE, gifE, trimEv) <- grout (fixed 5) $ boxTitle (constant doubleBoxStyle) (constant "Controls") $ col $ do
-                    grout (stretch 3) $ row $ do
-                        let buttonCfg = def{_buttonConfig_focusStyle = pure singleBoxStyle}
+            -- Main controls with timer logic
+            (startE, stopE, gifE, trimEv) <- grout (fixed 5) $ boxTitle (constant doubleBoxStyle) (constant "Controls") $ col $ do
+                grout (stretch 3) $ row $ do
+                    let buttonCfg = def{_buttonConfig_focusStyle = pure singleBoxStyle}
 
-                        rec isRecording <- holdDyn False toggleE
-                            toggleE <- tile flex $ do
-                                let buttonText = current $ ffor isRecording $ \recording ->
-                                        if recording then "           \xf28d" <> " Stop" else "           \xeba7" <> " Record"
-                                clickR <- textButton buttonCfg buttonText
-                                pure $ not <$> tag (current isRecording) clickR
+                    rec isRecording <- holdDyn False toggleE
+                        toggleE <- tile flex $ do
+                            let buttonText = current $ ffor isRecording $ \recording ->
+                                    if recording then "                          \xf28d" <> " Stop" else "                          \xeba7" <> " Record"
+                            clickR <- textButton buttonCfg buttonText
+                            pure $ not <$> tag (current isRecording) clickR
 
-                            let startE = ffilter id $ updated isRecording
-                                stopE = ffilter not $ updated isRecording
-                        rec isConverting <- holdDyn False convertE
-                            convertE <- tile flex $ do
-                                let buttonText = current $ ffor isConverting $ \converting ->
-                                        if converting then "         \xf254 Running" else "         \xf0d78 Create Gif"
-                                clickG <- textButton buttonCfg buttonText
-                                pure $ not <$> tag (current isConverting) clickG
+                        let startE = ffilter id $ updated isRecording
+                            stopE = ffilter not $ updated isRecording
+                    rec isConverting <- holdDyn False convertE
+                        convertE <- tile flex $ do
+                            let buttonText = current $ ffor isConverting $ \converting ->
+                                    if converting then "                          \xf254 Running" else "                         \xf0d78 Create Gif"
+                            clickG <- textButton buttonCfg buttonText
+                            pure $ not <$> tag (current isConverting) clickG
 
-                            let gifE = ffilter id $ updated isConverting
-                        -- TODO button to clip start and stop
-                        trimEv <- tile flex $ textButton buttonCfg "          \xf0c4 trimVideo"
-                        pure (startE, stopE, gifE, trimEv)
+                        let gifE = ffilter id $ updated isConverting
+                    -- TODO button to clip start and stop
+                    trimEv <- tile flex $ textButton buttonCfg "                          \xf0c4 trimVideo"
+                    pure (startE, stopE, gifE, trimEv)
 
-                recEv <- performEvent $ ffor startE $ \_ -> liftIO $ do
-                    startRecording videosDir
-                processState <- holdDyn Nothing $ Just <$> recEv
-                performEvent_ $ ffor (tag (current processState) stopE) $ \maybePh ->
-                    liftIO $ Data.Foldable.forM_ maybePh stopRecording
+            recEv <- performEvent $ ffor startE $ \_ -> liftIO $ do
+                startRecording videosDir
+            processState <- holdDyn Nothing $ Just <$> recEv
+            performEvent_ $ ffor (tag (current processState) stopE) $ \maybePh ->
+                liftIO $ Data.Foldable.forM_ maybePh stopRecording
 
-                performEvent_ $ ffor gifE $ \_ -> liftIO $ do
-                    convertToGif $ "/home/shane/" </> videosDir <> "/20241228_232222.mp4"
+            performEvent_ $ ffor gifE $ \_ -> liftIO $ do
+                convertToGif $ "/home/shane/" </> videosDir <> "/20241228_232222.mp4"
 
-                performEvent_ $ ffor trimEv $ \_ -> liftIO $ do
-                    trimVideo $ "/home/shane/" </> videosDir <> "/20241228_232222.mp4"
-                -- Timer logic using button events
-                isRunning <- toggle False $ leftmost [startE, stopE]
+            performEvent_ $ ffor trimEv $ \_ -> liftIO $ do
+                trimVideo $ "/home/shane/" </> videosDir <> "/20241228_232222.mp4"
+            -- Timer logic using button events
+            isRunning <- toggle False $ leftmost [startE, stopE]
 
-                -- Get tick events for when we're running
-                tick <- tickLossyFromPostBuildTime 1
+            -- Get tick events for when we're running
+            tick <- tickLossyFromPostBuildTime 1
 
-                -- Track accumulated time
-                accumTime <-
-                    foldDyn ($) 0 $
-                        mergeWith
-                            (.)
-                            [ const 0 <$ startE -- Reset to 0
-                            , (+ 1) <$ gate (current isRunning) tick -- Only add time when running
+            -- Track accumulated time
+            accumTime <-
+                foldDyn ($) 0 $
+                    mergeWith
+                        (.)
+                        [ const 0 <$ startE -- Reset to 0
+                        , (+ 1) <$ gate (current isRunning) tick -- Only add time when running
+                        ]
+
+            -- Timer display
+            grout (fixed 3) $ boxTitle (constant singleBoxStyle) (constant "Timer") $ col $ do
+                row $ do
+                    grout flex $ displayTimer accumTime
+
+            -- Recent recordings list
+            _ <- grout (fixed 10) $ boxTitle (constant singleBoxStyle) (constant "Recent Recordings") $ col $ do
+                -- Get initial files and set up watcher
+                pb <- getPostBuild
+                homePath <- performEvent $ pb $> liftIO getHomeDirectory
+                let videosPath = (</> videosDir) <$> homePath
+
+                -- Wait for the initial path before setting up watcher
+                watchPath <- headE videosPath
+
+                -- Watch for file system changes
+                fsEvents <-
+                    watchDir
+                        FS.defaultConfig -- Using defaultConfig from System.FSNotify
+                        watchPath
+                        (const True)
+
+                -- Combine initial load with file system events
+                let refreshTrigger =
+                        leftmost
+                            [ pb -- Initial load
+                            , void fsEvents -- Trigger on any file system event
                             ]
 
-                -- Timer display
-                grout (fixed 3) $ boxTitle (constant singleBoxStyle) (constant "Timer") $ col $ do
-                    row $ do
-                        grout flex $ displayTimer accumTime
+                -- Update file listing on any trigger
+                videoFiles <-
+                    holdDyn [T.pack "Loading..."]
+                        =<< performEvent (refreshTrigger $> liftIO (getVideoFiles videosDir))
 
-                -- Recent recordings list
-                _ <- grout (fixed 10) $ boxTitle (constant singleBoxStyle) (constant "Recent Recordings") $ col $ do
-                    -- Get initial files and set up watcher
-                    pb <- getPostBuild
-                    homePath <- performEvent $ pb $> liftIO getHomeDirectory
-                    let videosPath = (</> videosDir) <$> homePath
+                -- Main recordings list with interactive elements
 
-                    -- Wait for the initial path before setting up watcher
-                    watchPath <- headE videosPath
+                -- Display the files
+                tile flex $ scrollableText def $ T.unlines <$> videoFiles
 
-                    -- Watch for file system changes
-                    fsEvents <-
-                        watchDir
-                            FS.defaultConfig -- Using defaultConfig from System.FSNotify
-                            watchPath
-                            (const True)
+            grout (fixed 4) $ boxTitle (constant singleBoxStyle) (constant "Settings") $ col $ do
+                grout (fixed 1) $ row $ do
+                    grout (stretch 1) $ text "   Output Format: MP4"
+                grout (fixed 1) $ row $ do
+                    grout (stretch 1) $ text "   Save Location: ~/Videos/"
 
-                    -- Combine initial load with file system events
-                    let refreshTrigger =
-                            leftmost
-                                [ pb -- Initial load
-                                , void fsEvents -- Trigger on any file system event
-                                ]
-
-                    -- Update file listing on any trigger
-                    videoFiles <-
-                        holdDyn [T.pack "Loading..."]
-                            =<< performEvent (refreshTrigger $> liftIO (getVideoFiles videosDir))
-
-                    -- Main recordings list with interactive elements
-
-                    -- Display the files
-                    tile flex $ scrollableText def $ T.unlines <$> videoFiles
-
-                grout (fixed 4) $ boxTitle (constant singleBoxStyle) (constant "Settings") $ col $ do
-                    grout (fixed 1) $ row $ do
-                        grout (stretch 1) $ text "   Output Format: MP4"
-                    grout (fixed 1) $ row $ do
-                        grout (stretch 1) $ text "   Save Location: ~/Videos/"
-
-                -- Help text
-                grout (fixed 2) $
-                    text "Tab: Navigate | Enter/Space: Select | Ctrl+C: Exit"
-
-            grout flex blank -- Right margin
+            -- Help text
+            grout (fixed 2) $
+                text "    Tab: Navigate | Enter/Space: Select | Ctrl+C: Exit"
   where
     -- Perform recording actions
 
@@ -277,7 +273,7 @@ displayTimer accumTime = do
                 hours = total `div` 3600
                 mins = (total `mod` 3600) `div` 60
                 secs = total `mod` 60
-             in T.pack $ "                                              \xe641 " <> show hours <> ":" <> padZero mins <> ":" <> padZero secs
+             in T.pack $ "                                                                                          \xe641 " <> show hours <> ":" <> padZero mins <> ":" <> padZero secs
         padZero n = if n < 10 then "0" <> show n else show n
 
     text $ formatMyTime <$> current accumTime
