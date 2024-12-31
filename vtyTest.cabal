@@ -74,6 +74,7 @@ executable vtyTest
       reflex,
       reflex-vty,
       reflex-fsnotify,
+      reflex-process,
       fsnotify,
       text,
       time,

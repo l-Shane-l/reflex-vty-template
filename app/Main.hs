@@ -41,6 +41,29 @@ data UIState = UIState
     { currentSelection :: Maybe FilePath -- The currently selected file
     }
 
+-- For recording
+createRecordCommand :: FilePath -> FilePath -> CreateProcess
+createRecordCommand videosDir filename =
+    proc "ffmpeg" ["-f", "x11grab", "-i", ":0", outputPath]
+  where
+    outputPath = "/home/shane/" </> videosDir </> filename
+
+-- For trimming
+createTrimCommand :: FilePath -> FilePath -> CreateProcess
+createTrimCommand inputPath outputPath =
+    proc "ffmpeg" ["-ss", "5", "-i", inputPath, "-c", "copy", "-t", "1.245", outputPath]
+
+createGifCommand :: FilePath -> FilePath -> CreateProcess
+createGifCommand inputPath outputPath =
+    proc
+        "ffmpeg"
+        [ "-i"
+        , inputPath
+        , "-vf"
+        , "fps=15,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+        , outputPath
+        ]
+
 -- Helper functions for recording
 -- ffmpeg -f x11grab -i :0.0 output.mp4 >/dev/null 2>&1 & echo $! > /tmp/screencast.pid
 startRecording :: [Char] -> IO ProcessHandle
@@ -183,6 +206,11 @@ main = do
                 trimVideo $ "/home/shane/" </> videosDir <> "/20241228_232222.mp4"
             -- Timer logic using button events
             isRunning <- toggle False $ leftmost [startE, stopE]
+
+            countEvent <- performEvent $ ffor startE $ \_ -> liftIO $ return 1
+
+            -- Create a Behavior that starts at 0 and updates with each count
+            countBehavior <- hold 0 countEvent
 
             -- Get tick events for when we're running
             tick <- tickLossyFromPostBuildTime 1
